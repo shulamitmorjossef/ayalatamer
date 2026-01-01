@@ -1,26 +1,9 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-
-import { connectDB } from './config/db';
-import { fetchAndSaveCountries } from './services/country.service';
-import countryRoutes from './routes/country.routes';
-
+import dotenv from "dotenv";
 dotenv.config();
 
-const app = express();
-
-/* ===== Middlewares (חייבים להיות לפני routes) ===== */
-app.use(cors({ origin: 'http://localhost:5173' })); // אפשר גם app.use(cors()) בפיתוח
-app.use(express.json());
-
-/* ===== Routes ===== */
-app.use('/api/countries', countryRoutes);
-
-/* ===== Health Check ===== */
-app.get('/health', (_req, res) => {
-  res.send('Server is running');
-});
+import { app } from "./app";
+import { connectDB } from "./config/db";
+import { fetchAndSaveCountries } from "./services/country.service";
 
 const PORT = process.env.PORT || 5000;
 
@@ -33,7 +16,7 @@ const startServer = async (): Promise<void> => {
       console.log(`Server running on port ${PORT}`);
     });
   } catch (error) {
-    console.error('Failed to start server', error);
+    console.error("Failed to start server", error);
     process.exit(1);
   }
 };

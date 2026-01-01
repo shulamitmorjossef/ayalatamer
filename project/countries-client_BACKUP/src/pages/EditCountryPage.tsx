@@ -34,6 +34,8 @@ export default function EditCountryPage() {
     [cachedCountries, id]
   );
 
+  // ✅ תמיד enabled כדי שאם צריך יביא מהשרת,
+  // אבל אם יש cache – נקבל initialData מיד.
   const { data, isLoading, isError } = useQuery({
     queryKey: ["country", id],
     queryFn: () => getCountryById(id!),
@@ -46,43 +48,35 @@ export default function EditCountryPage() {
     setEditingName(data?.name ?? "");
     return () => setEditingName("");
   }, [data?.name, setEditingName]);
+const mutation = useMutation({
+  mutationFn: (payload: CountryPayload) => updateCountry(id!, payload),
+  
+  onSuccess: (updated) => {
+    setToast({ open: true, severity: "success", message: "עודכן בהצלחה" });
 
-  // ✅ הכי חשוב: initialValues יציב (לא אובייקט חדש בכל רינדור)
-  const initialValues = useMemo<CountryPayload>(() => {
-    return {
-      name: data?.name ?? "",
-      flag: data?.flag ?? "",
-      population: data?.population ?? 0,
-      region: data?.region ?? "",
-    };
-  }, [data?.name, data?.flag, data?.population, data?.region]);
+    // מעדכן שם ב-Navbar
+    setEditingName(updated.name);
 
-  const mutation = useMutation({
-    mutationFn: (payload: CountryPayload) => updateCountry(id!, payload),
-    onSuccess: (updated) => {
-      setToast({ open: true, severity: "success", message: "עודכן בהצלחה" });
+    qc.invalidateQueries({ queryKey: ["countries"] });
+    qc.invalidateQueries({ queryKey: ["country", id] });
 
-      setEditingName(updated.name);
+    setHasUnsavedChanges(false);
 
-      qc.invalidateQueries({ queryKey: ["countries"] });
-      qc.invalidateQueries({ queryKey: ["country", id] });
+    // ✅ השהייה קטנה כדי שיראו את הודעת ההצלחה
+    setTimeout(() => {
+      setEditingName(""); // לנקות מצב עריכה
+      navigate("/countries");
+    }, 1200); // ⏱️ 1.2 שניות
+  },
+  onError: () => {
+    setToast({ open: true, severity: "error", message: "עדכון נכשל" });
+  },
+});
 
-      setHasUnsavedChanges(false);
-
-      // ✅ מספיק זמן לראות הודעה, בלי קפיצה
-      setTimeout(() => {
-        setEditingName("");
-        navigate("/countries");
-      }, 1500);
-    },
-    onError: () => {
-      setToast({ open: true, severity: "error", message: "עדכון נכשל" });
-    },
-  });
 
   if (!id) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth={false} disableGutters sx={{ py: 4, px: 3 }}>
         <Typography variant="h6">חסר מזהה</Typography>
       </Container>
     );
@@ -92,11 +86,18 @@ export default function EditCountryPage() {
 
   if (isError || !data) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth={false} disableGutters sx={{ py: 4, px: 3 }}>
         <Typography variant="h6">שגיאה בטעינת מדינה</Typography>
       </Container>
     );
   }
+
+  const initialValues: CountryPayload = {
+    name: data.name,
+    flag: data.flag,
+    population: data.population,
+    region: data.region,
+  };
 
   const handleCancel = () => {
     if (hasUnsavedChanges) {
@@ -108,7 +109,7 @@ export default function EditCountryPage() {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth={false} disableGutters sx={{ py: 4, px: 3 }}>
       <Box sx={{ mb: 2 }}>
         <Typography variant="h5" fontWeight={800}>
           עריכת מדינה
@@ -122,10 +123,11 @@ export default function EditCountryPage() {
         mode="edit"
         initialValues={initialValues}
         onSubmit={async (values) => {
-          if (mutation.isPending) return;
           try {
             await mutation.mutateAsync(values);
-          } catch {}
+          } catch {
+            // onError כבר מציג הודעה, אין צורך לעשות כלום כאן
+          }
         }}
         onCancel={handleCancel}
         onDirtyChange={(dirty) => setHasUnsavedChanges(dirty)}

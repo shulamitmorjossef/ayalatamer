@@ -20,11 +20,7 @@ type Props = {
   onDirtyChange?: (dirty: boolean) => void;
 };
 
-function DirtyWatcher({
-  onDirtyChange,
-}: {
-  onDirtyChange?: (dirty: boolean) => void;
-}) {
+function DirtyWatcher({ onDirtyChange }: { onDirtyChange?: (dirty: boolean) => void }) {
   const { dirty } = useFormikContext<CountryPayload>();
 
   useEffect(() => {
@@ -53,26 +49,8 @@ export default function CountryForm({
         <Formik
           initialValues={initialValues}
           validationSchema={countrySchema}
-          enableReinitialize={mode === "edit"} // בעריכה בלבד
-          validateOnMount // ✅ קריטי: מחשב isValid כבר בהתחלה
-          validateOnChange // ✅ קריטי: מחשב isValid תוך כדי הקלדה
-          validateOnBlur // נשאיר גם Blur
+          enableReinitialize
           onSubmit={async (values, helpers) => {
-            // ✅ מבטיח שלחיצה אחת תמיד תנסה לשלוח רק אם תקין
-            const formErrors = await helpers.validateForm();
-            if (Object.keys(formErrors).length > 0) {
-              helpers.setTouched(
-                {
-                  name: true,
-                  flag: true,
-                  population: true,
-                  region: true,
-                },
-                true
-              );
-              return;
-            }
-
             try {
               await onSubmit({
                 name: values.name.trim(),
@@ -81,13 +59,8 @@ export default function CountryForm({
                 region: values.region.trim(),
               });
 
-              // ✅ בעריכה מאפס dirty אחרי שמירה
-              if (mode === "edit") {
-                helpers.resetForm({ values });
-              } else {
-                // ✅ ביצירה: אפשר לאפס את הטופס אם תרצי להישאר בעמוד
-                // helpers.resetForm();
-              }
+              // אחרי שמירה מוצלחת - מאפס dirty ל-false
+              helpers.resetForm({ values });
             } finally {
               helpers.setSubmitting(false);
             }
@@ -103,13 +76,10 @@ export default function CountryForm({
             isValid,
             dirty,
           }) => {
-            // ✅ אם זה NEW, אפשר לאפשר "אישור" רק כשהטופס תקין ומישהו באמת הזין משהו
-            // ✅ אם זה EDIT, חייב dirty כדי לא לשלוח בלי שינוי
-            const disableSave =
-              isSubmitting || !isValid || (mode === "edit" ? !dirty : false);
+            const disableSave = !dirty || !isValid || isSubmitting;
 
             return (
-              <Form noValidate>
+              <Form>
                 <DirtyWatcher onDirtyChange={onDirtyChange} />
 
                 <Stack spacing={2.5}>
@@ -120,7 +90,7 @@ export default function CountryForm({
                     onChange={handleChange}
                     onBlur={handleBlur}
                     error={!!touched.name && !!errors.name}
-                    helperText={touched.name ? (errors.name as string) : " "}
+                    helperText={touched.name ? errors.name : " "}
                     fullWidth
                   />
 
@@ -131,23 +101,23 @@ export default function CountryForm({
                     onChange={handleChange}
                     onBlur={handleBlur}
                     error={!!touched.flag && !!errors.flag}
-                    helperText={touched.flag ? (errors.flag as string) : " "}
+                    helperText={touched.flag ? errors.flag : " "}
                     fullWidth
                   />
 
                   <TextField
                     label="אוכלוסייה"
                     name="population"
+                    type="number"
                     value={values.population}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     error={!!touched.population && !!errors.population}
-                    helperText={
-                      touched.population ? (errors.population as string) : " "
-                    }
+                    helperText={touched.population ? errors.population : " "}
                     fullWidth
-                    inputMode="numeric"
+                    inputProps={{ min: 0, step: 1 }}
                   />
+
 
                   <TextField
                     label="אזור"
@@ -156,26 +126,17 @@ export default function CountryForm({
                     onChange={handleChange}
                     onBlur={handleBlur}
                     error={!!touched.region && !!errors.region}
-                    helperText={touched.region ? (errors.region as string) : " "}
+                    helperText={touched.region ? errors.region : " "}
                     fullWidth
                   />
 
                   <Stack direction="row" spacing={1.5} justifyContent="flex-end">
-                    <Button
-                      variant="outlined"
-                      type="button"
-                      onClick={onCancel}
-                      disabled={isSubmitting}
-                    >
+                    <Button variant="outlined" onClick={onCancel} disabled={isSubmitting}>
                       בטל
                     </Button>
 
-                    <Button
-                      variant="contained"
-                      type="submit"
-                      disabled={disableSave}
-                    >
-                      {isSubmitting ? "שומר..." : "אישור"}
+                    <Button variant="contained" type="submit" disabled={disableSave}>
+                      אישור
                     </Button>
                   </Stack>
                 </Stack>

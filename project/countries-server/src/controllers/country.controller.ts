@@ -6,13 +6,12 @@ import { Country } from "../models/Country";
 import { asyncHandler } from "../utils/asyncHandler";
 import { AppError } from "../utils/AppError";
 
-/* ===== GET all countries ===== */
+
 export const getAllCountries = asyncHandler(async (_req: Request, res: Response) => {
   const countries = await Country.find().sort({ name: 1 });
   res.status(200).json(countries);
 });
 
-/* ===== GET country by ID ===== */
 export const getCountryById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
@@ -20,7 +19,11 @@ export const getCountryById = asyncHandler(async (req: Request, res: Response) =
     throw new AppError("Invalid country ID", 400);
   }
 
-  const country = await Country.findById(id);
+  const country = await Country.findById(id).populate({
+    path: "cities",
+    options: { sort: { name: 1 } }, 
+  });
+
   if (!country) {
     throw new AppError("Country not found", 404);
   }
@@ -32,13 +35,13 @@ export const getCountryById = asyncHandler(async (req: Request, res: Response) =
 export const createCountry = asyncHandler(async (req: Request, res: Response) => {
   const { name, flag, population, region } = req.body;
 
-  const existing = await Country.findOne({ name });
+  const existing = await Country.findOne({ name: String(name).trim() });
   if (existing) {
     throw new AppError("Country already exists", 409);
   }
 
   const newCountry = await Country.create({
-    name,
+    name: String(name).trim(),
     flag,
     population,
     region,
@@ -55,11 +58,10 @@ export const updateCountry = asyncHandler(async (req: Request, res: Response) =>
     throw new AppError("Invalid country ID", 400);
   }
 
-  const updatedCountry = await Country.findByIdAndUpdate(
-    id,
-    req.body,
-    { new: true }
-  );
+  const updatedCountry = await Country.findByIdAndUpdate(id, req.body, {
+    new: true,
+    runValidators: true,
+  });
 
   if (!updatedCountry) {
     throw new AppError("Country not found", 404);

@@ -1,0 +1,16 @@
+.countries-page {
+  padding: 32px 24px;
+
+  &__header {
+    margin-bottom: 16px;
+  }
+
+  &__subtitle {
+    opacity: 0.8;
+  }
+
+  &__error {
+    margin-top: 8px;
+    opacity: 0.75;
+  }
+}

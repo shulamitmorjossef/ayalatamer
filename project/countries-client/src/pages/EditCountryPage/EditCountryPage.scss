@@ -1,0 +1,25 @@
+/* src/pages/countries/EditCountryPage.scss */
+
+.edit-country-page {
+  padding: 2rem;
+
+  .header {
+    margin-bottom: 1.5rem;
+
+    h5 {
+      font-weight: 800;
+      margin-bottom: 0.25rem;
+    }
+
+    p,
+    .MuiTypography-body2 {
+      color: rgba(0, 0, 0, 0.75);
+    }
+  }
+
+  .MuiTypography-h6 {
+    color: red; // אם רוצים להבליט שגיאות
+    text-align: center;
+    margin-top: 2rem;
+  }
+}

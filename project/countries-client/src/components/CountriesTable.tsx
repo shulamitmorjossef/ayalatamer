@@ -8,7 +8,7 @@ import type { Country } from "../api/countryApi";
 
 type CountriesTableProps = {
   rows: Country[];
-  onEdit: (id: string, name: string) => void; // ✅ שינוי
+  onEdit: (id: string, name: string) => void; 
   onDelete: (row: Country) => void;
   onAdd: () => void;
   loading?: boolean;
@@ -55,7 +55,7 @@ export default function CountriesTable({
           <Tooltip title="עריכה">
             <IconButton
               aria-label="edit"
-              onClick={() => onEdit(params.row._id, params.row.name)} // ✅ שינוי
+              onClick={() => onEdit(params.row._id, params.row.name)}
               size="small"
             >
               <EditIcon fontSize="small" />

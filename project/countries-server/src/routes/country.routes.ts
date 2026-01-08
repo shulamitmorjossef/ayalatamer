@@ -8,26 +8,56 @@ import {
   fetchExternalCountries,
 } from "../controllers/country.controller";
 
+import { authMiddleware } from "../middlewares/auth";
+import { requirePermission } from "../middlewares/authorize";
+
 const router = Router();
 
-/* ===== External Fetch ===== */
-// טעינת מדינות ממקור חיצוני ושמירה במסד (אם לא קיימות)
-router.post("/fetch-external", fetchExternalCountries);
+// Seed / fetch from external (מכניס נתונים ל-DB => נחשב create)
+router.post(
+  "/fetch-external",
+  authMiddleware,
+  requirePermission("countries", "create"),
+  fetchExternalCountries
+);
 
-/* ===== Country CRUD Routes ===== */
-// שליפת כל המדינות
-router.get("/", getAllCountries);
+// Read
+router.get(
+  "/",
+  authMiddleware,
+  requirePermission("countries", "read"),
+  getAllCountries
+);
 
-// יצירת מדינה חדשה
-router.post("/", createCountry);
+router.get(
+  "/:id",
+  authMiddleware,
+  requirePermission("countries", "read"),
+  getCountryById
+);
 
-// שליפת מדינה לפי מזהה
-router.get("/:id", getCountryById);
+// Create
+router.post(
+  "/",
+  authMiddleware,
+  requirePermission("countries", "create"),
+  createCountry
+);
 
-// עדכון מדינה קיימת לפי מזהה
-router.put("/:id", updateCountry);
+// Update
+router.put(
+  "/:id",
+  authMiddleware,
+  requirePermission("countries", "update"),
+  updateCountry
+);
 
-// מחיקת מדינה לפי מזהה
-router.delete("/:id", deleteCountry);
+// Delete
+router.delete(
+  "/:id",
+  authMiddleware,
+  requirePermission("countries", "delete"),
+  deleteCountry
+);
 
 export default router;

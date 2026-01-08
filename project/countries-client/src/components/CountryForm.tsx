@@ -53,12 +53,11 @@ export default function CountryForm({
         <Formik
           initialValues={initialValues}
           validationSchema={countrySchema}
-          enableReinitialize={mode === "edit"} // בעריכה בלבד
-          validateOnMount // ✅ קריטי: מחשב isValid כבר בהתחלה
-          validateOnChange // ✅ קריטי: מחשב isValid תוך כדי הקלדה
-          validateOnBlur // נשאיר גם Blur
+          enableReinitialize={mode === "edit"} 
+          validateOnMount 
+          validateOnChange 
+          validateOnBlur 
           onSubmit={async (values, helpers) => {
-            // ✅ מבטיח שלחיצה אחת תמיד תנסה לשלוח רק אם תקין
             const formErrors = await helpers.validateForm();
             if (Object.keys(formErrors).length > 0) {
               helpers.setTouched(
@@ -81,12 +80,10 @@ export default function CountryForm({
                 region: values.region.trim(),
               });
 
-              // ✅ בעריכה מאפס dirty אחרי שמירה
               if (mode === "edit") {
                 helpers.resetForm({ values });
               } else {
-                // ✅ ביצירה: אפשר לאפס את הטופס אם תרצי להישאר בעמוד
-                // helpers.resetForm();
+                
               }
             } finally {
               helpers.setSubmitting(false);
@@ -103,8 +100,7 @@ export default function CountryForm({
             isValid,
             dirty,
           }) => {
-            // ✅ אם זה NEW, אפשר לאפשר "אישור" רק כשהטופס תקין ומישהו באמת הזין משהו
-            // ✅ אם זה EDIT, חייב dirty כדי לא לשלוח בלי שינוי
+       
             const disableSave =
               isSubmitting || !isValid || (mode === "edit" ? !dirty : false);
 

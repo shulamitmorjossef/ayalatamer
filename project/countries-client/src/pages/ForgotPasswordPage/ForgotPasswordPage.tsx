@@ -1,88 +1,44 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Alert, Box, Button, Container, TextField, Typography } from "@mui/material";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { useResetPassword } from "../../api/passwordResetQueries";
+import { useForgotPassword } from "../../api/passwordResetQueries";
 
-export default function ResetPasswordPage() {
-  const nav = useNavigate();
-  const [params] = useSearchParams();
+export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState("");
+  const [done, setDone] = useState(false);
+  const mut = useForgotPassword();
 
-  const token = useMemo(() => params.get("token") ?? "", [params]);
-
-  const [newPassword, setNewPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  const mut = useResetPassword();
-
-  async function onSubmit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-
-    const p1 = newPassword;
-    const p2 = confirm;
-
-    if (!token) {
-      setError("חסר token בקישור. נא לפתוח את הלינק מהאימייל מחדש.");
-      return;
-    }
-
-    if (!p1 || p1.length < 8) {
-      setError("סיסמה חייבת להיות לפחות 8 תווים");
-      return;
-    }
-
-    if (p1 !== p2) {
-      setError("הסיסמאות לא תואמות");
-      return;
-    }
-
     try {
-      await mut.mutateAsync({ token, newPassword: p1 });
-      toast.success("הסיסמה עודכנה. אפשר להתחבר");
-      nav("/login", { replace: true });
+      await mut.mutateAsync(email);
+      setDone(true);
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? "שגיאה באיפוס סיסמה");
+      toast.error(e?.response?.data?.message ?? "שגיאה");
     }
   }
 
   return (
     <Container maxWidth="sm" sx={{ mt: 6 }}>
-      <Typography variant="h4" gutterBottom>
-        איפוס סיסמה
-      </Typography>
+      <Typography variant="h4" gutterBottom>שכחתי סיסמה</Typography>
 
-      {!token && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          לא נמצא token ב־URL. ודאי שפתחת את הקישור מהאימייל (…/reset-password?token=XXX)
+      {done ? (
+        <Alert severity="success">
+          אם האימייל קיים – נשלח קישור לאיפוס סיסמה
         </Alert>
+      ) : (
+        <Box component="form" onSubmit={submit} sx={{ display: "grid", gap: 2 }}>
+          <TextField
+            label="אימייל"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Button type="submit" variant="contained" disabled={mut.isPending}>
+            {mut.isPending ? "שולח..." : "שלח קישור"}
+          </Button>
+        </Box>
       )}
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Box component="form" onSubmit={onSubmit} sx={{ display: "grid", gap: 2 }}>
-        <TextField
-          label="סיסמה חדשה"
-          type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-        />
-        <TextField
-          label="אישור סיסמה חדשה"
-          type="password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-        />
-
-        <Button type="submit" variant="contained" disabled={mut.isPending}>
-          {mut.isPending ? "מעדכן..." : "איפוס סיסמה"}
-        </Button>
-      </Box>
     </Container>
   );
 }

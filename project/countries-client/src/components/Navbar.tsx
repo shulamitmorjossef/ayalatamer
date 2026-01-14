@@ -104,7 +104,7 @@ export default function Navbar() {
             {user.role === "ADMIN" && (
               <>
                 <Button color="inherit" onClick={() => nav("/admin/users")}>
-                  Admin Users
+                  ניהול משתמשים
                 </Button>
                 <Button
                   color="inherit"

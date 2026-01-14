@@ -1,189 +1,99 @@
 import type { Request, Response } from "express";
-import mongoose from "mongoose";
-import { AppError } from "../utils/AppError";
 import { User } from "../models/User";
+import { AppError } from "../utils/AppError";
 
-/* ========= Helpers ========= */
-function requireAuth(req: Request) {
-  if (!req.auth) throw new AppError("Unauthorized", 401);
-}
-
-function requireAdmin(req: Request) {
-  requireAuth(req);
-  if (req.auth!.role !== "ADMIN") throw new AppError("Forbidden", 403);
-}
-
-/* ========= ME ========= */
-export async function getMyProfile(req: Request, res: Response) {
-  requireAuth(req);
-
-  const user = await User.findById(req.auth!.sub).select(
-    "username role firstName lastName phone profileImagePath permissions createdAt updatedAt"
-  );
-
-  if (!user) throw new AppError("User not found", 404);
-
-  res.json({
+// פונקציית עזר להחזרת משתמש בפורמט נקי
+function toUserResponse(user: any) {
+  return {
     id: user._id,
     username: user.username,
     role: user.role,
+    profileImagePath: user.profileImagePath,
+    permissions: user.permissions,
     firstName: user.firstName,
     lastName: user.lastName,
     phone: user.phone,
-    profileImagePath: user.profileImagePath,
-    permissions: user.permissions,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-  });
-}
-
-export async function updateMyProfile(req: Request, res: Response) {
-  requireAuth(req);
-
-  const { firstName, lastName, phone } = req.body as {
-    firstName?: string;
-    lastName?: string;
-    phone?: string;
-  };
-
-  const file = (req as any).file as Express.Multer.File | undefined;
-  const uploadsDir = process.env.UPLOADS_DIR ?? "uploads";
-  const profileImagePath = file ? `/${uploadsDir}/profiles/${file.filename}` : undefined;
-
-  const update: any = {};
-  if (firstName !== undefined) update.firstName = firstName;
-  if (lastName !== undefined) update.lastName = lastName;
-  if (phone !== undefined) update.phone = phone;
-  if (profileImagePath !== undefined) update.profileImagePath = profileImagePath;
-
-  const user = await User.findByIdAndUpdate(req.auth!.sub, update, { new: true }).select(
-    "username role firstName lastName phone profileImagePath permissions createdAt updatedAt"
-  );
-
-  if (!user) throw new AppError("User not found", 404);
-
-  res.json({
-    id: user._id,
-    username: user.username,
-    role: user.role,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    phone: user.phone,
-    profileImagePath: user.profileImagePath,
-    permissions: user.permissions,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-  });
-}
-
-/* ========= ADMIN ========= */
-export async function adminListUsers(_req: Request, res: Response) {
-  // authMiddleware רץ לפני — אז req.auth קיים כאן
-  // אבל עדיין נבדוק:
-  // (אם את רוצה, אפשר להעביר req ולהשתמש requireAdmin)
-  const users = await User.find().select(
-    "username role firstName lastName email phone profileImagePath permissions createdAt updatedAt"
-  ).sort({ createdAt: -1 });
-
-  res.json(
-    users.map((u) => ({
-      id: u._id,
-      username: u.username,
-      role: u.role,
-      firstName: u.firstName,
-      lastName: u.lastName,
-      email: u.email,
-      phone: u.phone,
-      profileImagePath: u.profileImagePath,
-      permissions: u.permissions,
-      createdAt: u.createdAt,
-      updatedAt: u.updatedAt,
-    }))
-  );
-}
-
-export async function adminUpdateUser(req: Request, res: Response) {
-  requireAdmin(req);
-
-  const { id } = req.params;
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new AppError("Invalid user id", 400);
-  }
-
-  const { firstName, lastName, phone, role, permissions } = req.body as {
-    firstName?: string;
-    lastName?: string;
-    phone?: string;
-    role?: "ADMIN" | "USER";
-    permissions?: any;
-  };
-
-  const update: any = {};
-
-  // ===== טקסטים עם trim =====
-  if (firstName !== undefined) {
-    update.firstName = String(firstName).trim();
-  }
-
-  if (lastName !== undefined) {
-    update.lastName = String(lastName).trim();
-  }
-
-  if (phone !== undefined) {
-    update.phone = String(phone).trim();
-  }
-
-  // ===== role / permissions =====
-  if (role !== undefined) {
-    update.role = role;
-  }
-
-  if (permissions !== undefined) {
-    update.permissions = permissions;
-  }
-
-  // ===== תמונת פרופיל (אם נשלחה) =====
-  const file = (req as any).file as Express.Multer.File | undefined;
-  if (file) {
-    const uploadsDir = process.env.UPLOADS_DIR ?? "uploads";
-    update.profileImagePath = `/${uploadsDir}/profiles/${file.filename}`;
-  }
-
-  const user = await User.findByIdAndUpdate(id, update, { new: true }).select(
-    "username role firstName lastName email phone profileImagePath permissions createdAt updatedAt"
-  );
-
-  if (!user) {
-    throw new AppError("User not found", 404);
-  }
-
-  res.json({
-    id: user._id,
-    username: user.username,
-    role: user.role,
-    firstName: user.firstName,
-    lastName: user.lastName,
     email: user.email,
-    phone: user.phone,
-    profileImagePath: user.profileImagePath,
-    permissions: user.permissions,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
+  };
+}
+
+// 1. פרופיל שלי
+export async function getMyProfile(req: Request, res: Response) {
+  const auth = (req as any).auth;
+  const user = await User.findById(auth.sub);
+  if (!user) throw new AppError("User not found", 404);
+  res.json(toUserResponse(user));
+}
+
+// 2. עדכון פרופיל שלי
+export async function updateMyProfile(req: Request, res: Response) {
+  const auth = (req as any).auth;
+  const updateData = req.body;
+
+  // מניעת שינוי תפקיד/הרשאות על ידי המשתמש עצמו
+  delete updateData.role;
+  delete updateData.permissions;
+
+  if ((req as any).file) {
+    updateData.profileImagePath = `/uploads/profiles/${(req as any).file.filename}`;
+  }
+
+  const updated = await User.findByIdAndUpdate(auth.sub, { $set: updateData }, { new: true });
+  res.json({ message: "Profile updated", user: toUserResponse(updated) });
+}
+
+// 3. רשימת משתמשים (עבור אדמין)
+export async function adminListUsers(_req: Request, res: Response) {
+  const users = await User.find();
+  res.json(users.map(toUserResponse));
+}
+
+// פונקציה לעדכון משתמש על ידי מנהל
+export async function adminUpdateUser(req: Request, res: Response) {
+  const { id } = req.params;
+  const updateData = { ...req.body }; // מקבל את כל השדות מהפרונט (username, lastName, וכו')
+  const auth = (req as any).auth;
+
+  // הגנה: וודוא שהמבצע הוא אכן אדמין (ליתר ביטחון)
+  if (auth?.role !== "ADMIN") {
+    throw new AppError("Forbidden: Admin only", 403);
+  }
+
+  // בדיקה אם שם המשתמש החדש תפוס על ידי מישהו אחר
+  if (updateData.username) {
+    const existingUser = await User.findOne({ 
+      username: updateData.username, 
+      _id: { $ne: id } 
+    });
+    if (existingUser) {
+      throw new AppError("שם המשתמש כבר תפוס במערכת", 400);
+    }
+  }
+
+  // אם הועלתה תמונה חדשה דרך multer
+  if ((req as any).file) {
+    updateData.profileImagePath = `/uploads/profiles/${(req as any).file.filename}`;
+  }
+
+  // העדכון בפועל ב-Database
+  const updatedUser = await User.findByIdAndUpdate(
+    id,
+    { $set: updateData },
+    { new: true, runValidators: true }
+  );
+
+  if (!updatedUser) throw new AppError("User not found", 404);
+
+  res.json({ 
+    message: "המשתמש עודכן בהצלחה", 
+    user: toUserResponse(updatedUser) 
   });
 }
 
-
+// 5. מחיקת משתמש
 export async function adminDeleteUser(req: Request, res: Response) {
-  requireAdmin(req);
-
   const { id } = req.params;
-  if (!mongoose.Types.ObjectId.isValid(id)) throw new AppError("Invalid user id", 400);
-
-  // לא מאפשרים למחוק את עצמך (מומלץ)
-  if (req.auth!.sub === id) throw new AppError("You cannot delete yourself", 400);
-
   const deleted = await User.findByIdAndDelete(id);
   if (!deleted) throw new AppError("User not found", 404);
-
   res.json({ message: "User deleted successfully" });
 }

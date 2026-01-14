@@ -13,38 +13,20 @@ import { AppError } from "../utils/AppError";
 
 const router = Router();
 
+// מידלוור פנימי לבדיקת אדמין
 function adminOnly(req: any, _res: any, next: any) {
   if (!req.auth) return next(new AppError("Unauthorized", 401));
   if (req.auth.role !== "ADMIN") return next(new AppError("Forbidden", 403));
   next();
 }
 
-// פרופיל שלי
+// נתיבים
 router.get("/me", authMiddleware, asyncHandler(getMyProfile));
+router.put("/me", authMiddleware, uploadProfileImage.single("profileImage"), asyncHandler(updateMyProfile));
 
-// עדכון פרופיל שלי (עם תמונה)
-router.put(
-  "/me",
-  authMiddleware,
-  uploadProfileImage.single("profileImage"),
-  asyncHandler(updateMyProfile)
-);
-
-/* ===== Admin ===== */
-
-// רשימת משתמשים
+/* Admin Only */
 router.get("/", authMiddleware, adminOnly, asyncHandler(adminListUsers));
-
-// עדכון משתמש + (אופציונלי) תמונה/הרשאות/role
-router.put(
-  "/:id",
-  authMiddleware,
-  adminOnly,
-  uploadProfileImage.single("profileImage"),
-  asyncHandler(adminUpdateUser)
-);
-
-// מחיקת משתמש
+router.put("/:id", authMiddleware, adminOnly, uploadProfileImage.single("profileImage"), asyncHandler(adminUpdateUser));
 router.delete("/:id", authMiddleware, adminOnly, asyncHandler(adminDeleteUser));
 
 export default router;

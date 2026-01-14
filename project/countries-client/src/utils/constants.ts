@@ -5,7 +5,7 @@
 // =====================
 export const PAGE_TITLES = {
   NEW_COUNTRY: "יצירת מדינה חדשה",
-  EDIT_COUNTRY: "עריכת מדינה",
+  // EDIT_COUNTRY: "עריכת מדינה",
   COUNTRIES_LIST: "מדינות",
 };
 
@@ -14,7 +14,7 @@ export const PAGE_TITLES = {
 // =====================
 export const PAGE_DESCRIPTIONS = {
   NEW_COUNTRY: "לאחר יצירה הטבלה תתעדכן אוטומטית",
-  EDIT_COUNTRY: "השינויים ישמרו לשרת והטבלה תתעדכן אוטומטית",
+  // EDIT_COUNTRY: "השינויים ישמרו לשרת והטבלה תתעדכן אוטומטית",
   COUNTRIES_LIST: "טבלה עם CRUD דרך השרת",
 };
 

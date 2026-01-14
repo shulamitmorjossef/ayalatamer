@@ -15,6 +15,7 @@ import { toast } from "react-toastify";
 import type { AdminUserRow, Permissions } from "../../api/adminUsersApi";
 import { useAdminUpdateUser, useAdminUsers } from "../../api/adminUsersQueries";
 
+// פונקציות עזר לשכפול ושינוי הרשאות
 function clonePerm(p: Permissions): Permissions {
   return JSON.parse(JSON.stringify(p));
 }
@@ -33,16 +34,16 @@ export default function AdminUsersPage() {
 
   const columns: GridColDef<AdminUserRow>[] = useMemo(
     () => [
-      { field: "username", headerName: "Username", flex: 1, minWidth: 140 },
-      { field: "role", headerName: "Role", width: 110 },
-      { field: "firstName", headerName: "שם פרטי", flex: 1, minWidth: 120 },
-      { field: "lastName", headerName: "שם משפחה", flex: 1, minWidth: 120 },
-      { field: "email", headerName: "Email", flex: 1, minWidth: 200 },
-      { field: "phone", headerName: "טלפון", width: 140 },
 
+      { field: "username", headerName: "שם משתמש", flex: 1, minWidth: 140, editable: true },
+      { field: "firstName", headerName: "שם פרטי", flex: 1, minWidth: 120, editable: true },
+      { field: "lastName", headerName: "שם משפחה", flex: 1, minWidth: 120, editable: true },
+      { field: "phone", headerName: "טלפון", width: 140, editable: true }, // עכשיו ניתן לעריכה
+      { field: "role", headerName: "תפקיד", width: 110 },
+      { field: "email", headerName: "Email", flex: 1, minWidth: 200 }, // נשאר לקריאה בלבד לפי הדרישות
       {
         field: "countriesPerms",
-        headerName: "Countries הרשאות",
+        headerName: "הרשאות מדינות",
         flex: 2,
         minWidth: 320,
         sortable: false,
@@ -53,7 +54,7 @@ export default function AdminUsersPage() {
           const onSave = async (nextPerms: Permissions) => {
             try {
               await updateMut.mutateAsync({ id: u.id, body: { permissions: nextPerms } });
-              toast.success("עודכן");
+              toast.success("הרשאות עודכנו");
             } catch (e: any) {
               toast.error(e?.response?.data?.message ?? "שגיאה בעדכון");
             }
@@ -81,7 +82,7 @@ export default function AdminUsersPage() {
 
       {
         field: "citiesPerms",
-        headerName: "Cities הרשאות",
+        headerName: "הרשאות ערים",
         flex: 2,
         minWidth: 320,
         sortable: false,
@@ -92,7 +93,7 @@ export default function AdminUsersPage() {
           const onSave = async (nextPerms: Permissions) => {
             try {
               await updateMut.mutateAsync({ id: u.id, body: { permissions: nextPerms } });
-              toast.success("עודכן");
+              toast.success("הרשאות עודכנו");
             } catch (e: any) {
               toast.error(e?.response?.data?.message ?? "שגיאה בעדכון");
             }
@@ -120,24 +121,28 @@ export default function AdminUsersPage() {
 
       {
         field: "actions",
-        headerName: "פעולות",
+        headerName: "ניהול",
         width: 120,
         sortable: false,
         renderCell: (params) => {
           const u = params.row;
-
           async function makeUserAdmin() {
             try {
               await updateMut.mutateAsync({ id: u.id, body: { role: "ADMIN" } });
-              toast.success("הפך לאדמין");
+              toast.success("הפך למנהל");
             } catch (e: any) {
               toast.error(e?.response?.data?.message ?? "שגיאה");
             }
           }
 
           return (
-            <Button size="small" variant="outlined" onClick={makeUserAdmin} disabled={u.role === "ADMIN"}>
-              Admin
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={makeUserAdmin}
+              disabled={u.role === "ADMIN"}
+            >
+              הפוך לאדמין
             </Button>
           );
         },
@@ -148,7 +153,7 @@ export default function AdminUsersPage() {
 
   if (isLoading) {
     return (
-      <Container sx={{ mt: 4 }}>
+      <Container sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
         <CircularProgress />
       </Container>
     );
@@ -165,12 +170,12 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        ניהול משתמשים (Admin)
+    <Container sx={{ mt: 4 }} maxWidth="xl">
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: "bold", color: "#1976d2" }}>
+        ניהול משתמשים והרשאות
       </Typography>
 
-      <Paper sx={{ height: 600, width: "100%" }}>
+      <Paper sx={{ height: 700, width: "100%", boxShadow: 3 }}>
         <DataGrid
           rows={rows}
           columns={columns}
@@ -178,6 +183,30 @@ export default function AdminUsersPage() {
           disableRowSelectionOnClick
           pageSizeOptions={[10, 25, 50]}
           initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+
+          // לוגיקת עדכון שדות טקסט (שם, שם משפחה, יוזרניים)
+          processRowUpdate={async (newRow, oldRow) => {
+            const changes: any = {};
+
+            if (newRow.username !== oldRow.username) changes.username = newRow.username;
+            if (newRow.firstName !== oldRow.firstName) changes.firstName = newRow.firstName;
+            if (newRow.lastName !== oldRow.lastName) changes.lastName = newRow.lastName;
+            if (newRow.phone !== oldRow.phone) changes.phone = newRow.phone; // הוספת הטלפון
+
+            if (Object.keys(changes).length === 0) return oldRow;
+
+            try {
+              await updateMut.mutateAsync({
+                id: newRow.id,
+                body: changes,
+              });
+              toast.success("הפרטים עודכנו בהצלחה");
+              return newRow;
+            } catch (e: any) {
+              toast.error(e?.response?.data?.message ?? "שגיאה בעדכון");
+              return oldRow;
+            }
+          }}
         />
       </Paper>
     </Container>

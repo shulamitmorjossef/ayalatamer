@@ -5,79 +5,61 @@ import { toast } from "react-toastify";
 import { useResetPassword } from "../../api/passwordResetQueries";
 
 export default function ResetPasswordPage() {
-  const nav = useNavigate();
   const [params] = useSearchParams();
-
+  const nav = useNavigate();
   const token = useMemo(() => params.get("token") ?? "", [params]);
 
-  const [newPassword, setNewPassword] = useState("");
+  const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
   const mut = useResetPassword();
 
-  async function onSubmit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
 
     if (!token) {
-      setError("חסר token בקישור. נא לפתוח את הלינק מהאימייל מחדש.");
+      toast.error("חסר token ב־URL (יש להיכנס מהקישור במייל)");
       return;
     }
 
-    if (!newPassword || newPassword.length < 8) {
-      setError("סיסמה חייבת להיות לפחות 8 תווים");
-      return;
-    }
-
-    if (newPassword !== confirm) {
-      setError("הסיסמאות לא תואמות");
+    if (password !== confirm) {
+      toast.error("הסיסמאות לא תואמות");
       return;
     }
 
     try {
-      await mut.mutateAsync({ token, newPassword });
-      toast.success("הסיסמה עודכנה. אפשר להתחבר");
-      nav("/login", { replace: true });
+      await mut.mutateAsync({ token, newPassword: password });
+      toast.success("הסיסמה עודכנה");
+      nav("/login");
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? "שגיאה באיפוס סיסמה");
+      toast.error(e?.response?.data?.message ?? "שגיאה");
     }
   }
 
   return (
     <Container maxWidth="sm" sx={{ mt: 6 }}>
-      <Typography variant="h4" gutterBottom>
-        איפוס סיסמה
-      </Typography>
+      <Typography variant="h4" gutterBottom>איפוס סיסמה</Typography>
 
       {!token && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          לא נמצא token ב־URL. ודאי שפתחת קישור בפורמט: /reset-password?token=XXX
+        <Alert severity="warning">
+          יש להיכנס לעמוד זה דרך הקישור שנשלח למייל
         </Alert>
       )}
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Box component="form" onSubmit={onSubmit} sx={{ display: "grid", gap: 2 }}>
+      <Box component="form" onSubmit={submit} sx={{ display: "grid", gap: 2 }}>
         <TextField
           label="סיסמה חדשה"
           type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
         <TextField
-          label="אישור סיסמה חדשה"
+          label="אישור סיסמה"
           type="password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
         />
-
         <Button type="submit" variant="contained" disabled={mut.isPending}>
-          {mut.isPending ? "מעדכן..." : "איפוס סיסמה"}
+          איפוס סיסמה
         </Button>
       </Box>
     </Container>

@@ -1,4 +1,3 @@
-// file: src/api/authQueries.ts
 import { useMutation } from "@tanstack/react-query";
 import { meApi } from "./authApi";
 

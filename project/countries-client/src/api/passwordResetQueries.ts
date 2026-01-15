@@ -1,4 +1,3 @@
-// file: src/api/passwordResetQueries.ts
 import { useMutation } from "@tanstack/react-query";
 import { forgotPasswordApi, resetPasswordApi } from "./passwordResetApi";
 

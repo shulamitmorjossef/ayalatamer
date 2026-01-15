@@ -1,4 +1,3 @@
-// file: src/components/CitiesSection.tsx
 import { useMemo, useState } from "react";
 import {
   Box,

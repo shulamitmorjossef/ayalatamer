@@ -1,4 +1,3 @@
-// file: src/api/citiesApi.ts
 import { http } from "./http";
 
 export type CountryRef =

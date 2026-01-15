@@ -5,7 +5,6 @@ import { CacheProvider } from "@emotion/react"; // ייבוא חדש
 import createCache from "@emotion/cache"; // ייבוא חדש
 import { prefixer } from "stylis"; // ייבוא חדש
 import rtlPlugin from "stylis-plugin-rtl"; // ייבוא חדש
-
 import Navbar from "./components/Navbar";
 import CountriesPage from "./pages/CountriesPage/CountriesPage";
 import EditCountryPage from "./pages/EditCountryPage/EditCountryPage";
